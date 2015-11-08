@@ -1,0 +1,149 @@
+#Ubuntu
+
+
+0. [Set up ssh keys](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys--2)
+
+		cat ~/.ssh/vedyakov.robodrom.pub | ssh user@192.168.1.72 "mkdir -p ~/.ssh && cat >>  ~/.ssh/authorized_keys"
+
+0. Install base utils 
+	
+		sudo apt-get install gcc g++ git make
+
+1. [Ускоряем ssh в 100 раз](http://habrahabr.ru/post/115942/)
+
+	В файлах /etc/pam.d/login и /etc/pam.d/sshd выпиливаем начисто строчки «session optional pam_motd.so»
+
+	Сносим нафиг компоненты платного мониторинга, установленные по дефолту:
+	
+		aptitude remove landscape-client landscape-common
+
+
+2. [Fix Locale](http://askubuntu.com/questions/162391/how-do-i-fix-my-locale-issue)
+
+		/etc/environment:
+		LC_ALL=en_US.UTF-8
+		LANG=en_US.UTF-8
+
+		~/.bashrc
+		export LC_ALL="en_US.UTF-8"
+	
+		locale
+		sudo locale-gen en_US en_US.UTF-8
+		dpkg-reconfigure locales 
+
+3. [MongoDB](http://docs.mongodb.org/manual/tutorial/install-mongodb-on-ubuntu/)
+
+4. [NGINX](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-12-04-lts-precise-pangolin)
+
+5. [Redis](https://www.linode.com/docs/databases/redis/redis-on-ubuntu-12-04-precise-pangolin)
+
+6. [Dnsmasq]
+
+7. [Capistrano](https://github.com/capistrano/capistrano/wiki/2.x-from-the-beginning)
+
+		cap deploy:setup
+		cap deploy:check
+		cap deploy:update
+		cap deploy
+		
+8. Database
+
+		 mongodump --out /home/alex/dumps/30092014
+		 mongorestore /home/user/dumps/30092014/
+	 
+9. NodeJS	
+
+10. Bluetooth
+
+	0. Устанавливаем компоненты
+		
+			sudo apt-get install bluez python-gobject python-dbus
+
+	1. Проверяем устройства
+	
+			hcitool dev
+
+	2. Меняем MAC-адреса
+		
+			sudo bccmd -d hci0 psset bdaddr 3D 00 01 0A 83 00 15 00
+			sudo bccmd -d hci1 psset bdaddr 3D 00 02 0A 83 00 15 00
+	
+	3. Перезагружаем устройства
+		
+			sudo bccmd -d hci0 warmreset
+			sudo bccmd -d hci1 warmreset
+
+	4. Привязываем роботов к соответсвующим устройствам
+		
+			sudo bluez-simple-agent hci1 00:16:53:1B:57:E4
+			sudo bluez-simple-agent hci1 00:16:53:1B:06:A6
+			sudo bluez-simple-agent hci0 00:16:53:15:0E:A1
+			sudo bluez-simple-agent hci0 00:16:53:15:0B:EE
+
+	4. При возникновении ошибки 
+		
+			Creating device failed: org.bluez.Error.AlreadyExists: Already Exists
+
+		Попробуем перепривязать
+
+			sudo bluez-simple-agent hci1 00:16:53:1B:57:E4 repair
+			sudo bluez-simple-agent hci1 00:16:53:1B:06:A6 repair
+			sudo bluez-simple-agent hci0 00:16:53:15:0E:A1 repair
+			sudo bluez-simple-agent hci0 00:16:53:15:0B:EE repair
+
+	5. Помечаем подключение как доверенное
+
+			sudo bluez-test-device -i hci1 trusted 00:16:53:1B:57:E4 yes
+			sudo bluez-test-device -i hci1 trusted 00:16:53:1B:06:A6 yes
+			sudo bluez-test-device -i hci0 trusted 00:16:53:15:0E:A1 yes
+			sudo bluez-test-device -i hci0 trusted 00:16:53:15:0B:EE yes
+
+	5. Описываем конфигурацию последовательных портов
+		
+			sudo nano /etc/bluetooth/rfcomm.conf:
+
+			rfcomm201 {
+				bind yes;
+				device 00:16:53:1B:57:E4;
+				channel 1;
+				comment "RD_2";
+			}
+			
+			rfcomm202 {
+			        bind yes;
+			        device 00:16:53:1B:06:A6;
+			        channel 1;
+			        comment "RD_3";
+			}
+			
+			rfcomm203 {
+			        bind yes;
+			        device 00:16:53:15:0E:A1;
+			        channel 1;
+			        comment "RD_4";
+			}
+			
+			rfcomm204 {
+			        bind yes;
+			        device 00:16:53:15:0B:EE;
+			        channel 1;
+			        comment "RD_5";
+			}
+
+	6. Связываем последовательные порты и устройства
+
+			sudo rfcomm -i hci1 bind /dev/rfcomm201 00:16:53:1B:57:E4
+			sudo rfcomm -i hci1 bind /dev/rfcomm202 00:16:53:1B:06:A6
+			sudo rfcomm -i hci0 bind /dev/rfcomm203 00:16:53:15:0E:A1
+			sudo rfcomm -i hci0 bind /dev/rfcomm204 00:16:53:15:0B:EE
+
+		Если ошибка о том, что порты уже используются, то делаем
+		
+			sudo rfcomm release all
+			sudo service bluetooth restart
+
+	7. Сбрасываем права на последовательные порты
+	
+			sudo chmod 777 /dev/rfcomm*
+
+> Written with [StackEdit](https://stackedit.io/).
